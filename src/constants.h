@@ -23,7 +23,7 @@
 /**
  * Maximum transaction length (bytes).
  */
-#define MAX_TRANSACTION_LEN 510
+#define MAX_TRANSACTION_LEN 4096
 
 /**
  * Prefix byte for QRL v2.0 addresses.

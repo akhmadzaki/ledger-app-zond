@@ -6,6 +6,7 @@
 
 #define ADDRESS_LENGTH 64
 #define MAX_FIELD_SIZE 32
+#define MAX_DATA_SIZE 4096
 
 typedef struct {
     uint8_t chain_id[MAX_FIELD_SIZE];
@@ -27,6 +28,9 @@ typedef struct {
 
     uint8_t value[MAX_FIELD_SIZE];
     uint8_t value_len;
+
+    uint8_t data[MAX_DATA_SIZE];
+    uint8_t data_len;
 
     uint8_t descriptor[3];
     uint8_t descriptor_len;

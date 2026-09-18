@@ -232,6 +232,11 @@ int decode_ledger_tx(const uint8_t *rlp, size_t rlp_len, zond_tx_t *tx) {
         PRINTF("Invalid data field\n");
         return -1;
     }
+    PRINTF("data val_len %u\n", val_len);
+    PRINTF("data consumed %d\n", consumed);
+    memset(tx->data, 0, MAX_DATA_SIZE);
+    memcpy(tx->data, val_ptr, val_len);  // right-align
+    tx->data_len = val_len;
     p += consumed;
     remaining -= consumed;
 

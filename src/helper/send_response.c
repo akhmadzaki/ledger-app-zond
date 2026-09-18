@@ -67,6 +67,7 @@ int helper_send_response_sig(uint8_t index) {
     } else if (index == 17) {
         uint8_t temp = 0;
         nvm_write((void *) &N_storage.is_sending_signature, &temp, sizeof(uint8_t));
+        G_context.state = STATE_NONE;
     }
 
     return 0;

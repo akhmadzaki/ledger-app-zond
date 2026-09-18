@@ -57,6 +57,12 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         if (G_context.req_type != CONFIRM_TRANSACTION) {
             return io_send_sw(SW_BAD_STATE);
         }
+        if (G_context.state != STATE_NONE) {
+            return io_send_sw(SW_BAD_STATE);
+        }
+        PRINTF("G_context.tx_info.raw_tx_len %u\n", G_context.tx_info.raw_tx_len);
+        PRINTF("cdata->size %u\n", cdata->size);
+        PRINTF("sizeof(G_context.tx_info.raw_tx) %u\n", sizeof(G_context.tx_info.raw_tx));
         if (G_context.tx_info.raw_tx_len + cdata->size > sizeof(G_context.tx_info.raw_tx)) {
             return io_send_sw(SW_WRONG_TX_LENGTH);
         }
@@ -76,6 +82,9 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
 
     } else if (p1 == 2 && p2 == 0) {
         if (G_context.req_type != CONFIRM_TRANSACTION) {
+            return io_send_sw(SW_BAD_STATE);
+        }
+        if (G_context.state != STATE_NONE) {
             return io_send_sw(SW_BAD_STATE);
         }
         if (G_context.tx_info.raw_tx_len + cdata->size > sizeof(G_context.tx_info.raw_tx)) {
@@ -115,10 +124,20 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
             return io_send_sw(SW_TX_PARSING_FAIL);
         }
 
+        if(tx.data_len !=0 && !N_storage.enable_blind_signing) {
+            ui_error_blind_signing();
+            return io_send_sw(SW_SIGNATURE_FAIL);
+        } else if(tx.data_len !=0 && N_storage.enable_blind_signing)  {
+            return ui_display_blind_signed_transaction(&tx);
+        }
+
         return ui_display_transaction(&tx);
         // return ui_display_blind_signed_transaction();
     } else if (p1 == 2 && p2 > 0 && p2 < 18) {
         if (G_context.req_type != CONFIRM_TRANSACTION) {
+            return io_send_sw(SW_BAD_STATE);
+        }
+        if (G_context.state != STATE_APPROVED) {
             return io_send_sw(SW_BAD_STATE);
         }
         if (N_storage.is_sending_signature) {

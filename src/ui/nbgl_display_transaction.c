@@ -39,13 +39,16 @@ static char g_from_address[1 + ADDRESS_SIZE * 2 + 1];
 static char g_amount[30];
 static char g_to_address[1 + ADDRESS_SIZE * 2 + 1];
 static char g_max_fees[30];
-// static char dec[10];
+static char g_nonce[10];
+static char g_tx_hash[67];
 
-static nbgl_contentTagValue_t pairs[4];
+static nbgl_contentTagValue_t pairs[6];
 static nbgl_contentTagValueList_t pairList;
 
 #define MAX_DECIMAL_DIGITS 40
 #define MAX_RESULT_LEN     50
+
+
 
 static void uint8_array_to_decimal(const uint8_t *bytes, size_t len, char *out) {
     uint8_t temp[32] = {0};  // Ensure full zero-init
@@ -175,6 +178,16 @@ void print_tx_utils(zond_tx_t *tx) {
     PRINTF("================\n");
 }
 
+void bytes_to_hex_string(const uint8_t *src, size_t src_len, char *dst) {
+    const char *hex_chars = "0123456789abcdef";
+    for (size_t i = 0; i < src_len; i++) {
+        dst[i * 2]     = hex_chars[(src[i] >> 4) & 0x0F]; // High nibble
+        dst[i * 2 + 1] = hex_chars[src[i] & 0x0F];       // Low nibble
+    }
+    // Always null-terminate the string
+    dst[src_len * 2] = '\0';
+}
+
 // Public function to start the transaction review
 // - Check if the app is in the right state for transaction review
 // - Format the amount and address strings in g_amount and g_address buffers
@@ -203,16 +216,17 @@ int ui_display_transaction_bs_choice(bool is_blind_signed, zond_tx_t *tx) {
     PRINTF("\n");
 
     // Format nonce
-    // uint8_array_to_decimal(tx->nonce, tx->nonce_len, dec);
+    uint8_array_to_decimal(tx->nonce, tx->nonce_len, g_nonce);
 
     // Format tx hash
-    // char tx_hash[65] = {0};
-    // memset(tx_hash, 0, sizeof(tx_hash));
-    // bytes_to_hex_string(G_context.tx_info.m_hash, 32, tx_hash);
-    // tx_hash[64] = '\0';
-    // PRINTF("tx hash %s\n", tx_hash);
-    // memset(g_tx_hash, 0, sizeof(g_tx_hash));
-    // snprintf(g_amount, sizeof(g_amount), "QRL %.*s", sizeof(amount), amount);
+    char tx_hash[65] = {0};
+    memset(tx_hash, 0, sizeof(tx_hash));
+    bytes_to_hex_string(G_context.tx_info.m_hash, 32, tx_hash);
+    tx_hash[64] = '\0';
+    PRINTF("tx hash %s\n", tx_hash);
+    memset(g_tx_hash, 0, sizeof(g_tx_hash));
+    snprintf(g_tx_hash, sizeof(g_tx_hash), "0x%.*s", sizeof(tx_hash), tx_hash);
+    PRINTF("tx hash %s\n", g_tx_hash);
 
     // Format from address
     memset(g_from_address, 0, sizeof(g_from_address));
@@ -243,23 +257,70 @@ int ui_display_transaction_bs_choice(bool is_blind_signed, zond_tx_t *tx) {
     memset(g_max_fees, 0, sizeof(g_max_fees));
     snprintf(g_max_fees, sizeof(g_max_fees), "QRL %.*s", sizeof(max_fees), max_fees);
 
-    // Setup data to display
-    pairs[0].item = "From";
-    pairs[0].value = g_from_address;
-    pairs[1].item = "Amount";
-    pairs[1].value = g_amount;
-    pairs[2].item = "To";
-    pairs[2].value = g_to_address;
-    pairs[3].item = "Max fees";
-    pairs[3].value = g_max_fees;
-    // pairs[4].item = "Nonce";
-    // pairs[4].value = dec;
-    // pairs[5].item = "Tx hash";
-    // pairs[5].value = tx_hash;
+    uint8_t num_pairs = 0;
 
+    // Setup data to display
+    if(N_storage.display_nonce && N_storage.display_tx_hash) {
+        pairs[0].item = "From";
+        pairs[0].value = g_from_address;
+        pairs[1].item = "Amount";
+        pairs[1].value = g_amount;
+        pairs[2].item = "To";
+        pairs[2].value = g_to_address;
+        pairs[3].item = "Nonce";
+        pairs[3].value = g_nonce;
+        pairs[4].item = "Max fees";
+        pairs[4].value = g_max_fees;
+#ifdef SCREEN_SIZE_WALLET
+        pairs[5].item = "Transaction hash";
+#else
+        pairs[5].item = "Tx hash";
+#endif
+        pairs[5].value = g_tx_hash;
+        num_pairs = 6;
+    } else if(N_storage.display_nonce) {
+        pairs[0].item = "From";
+        pairs[0].value = g_from_address;
+        pairs[1].item = "Amount";
+        pairs[1].value = g_amount;
+        pairs[2].item = "To";
+        pairs[2].value = g_to_address;
+        pairs[3].item = "Nonce";
+        pairs[3].value = g_nonce;
+        pairs[4].item = "Max fees";
+        pairs[4].value = g_max_fees;
+        num_pairs = 5;
+    } else if(N_storage.display_tx_hash) {
+        pairs[0].item = "From";
+        pairs[0].value = g_from_address;
+        pairs[1].item = "Amount";
+        pairs[1].value = g_amount;
+        pairs[2].item = "To";
+        pairs[2].value = g_to_address;
+        pairs[3].item = "Max fees";
+        pairs[3].value = g_max_fees;
+#ifdef SCREEN_SIZE_WALLET
+        pairs[4].item = "Transaction hash";
+#else
+        pairs[4].item = "Tx hash";
+#endif
+        pairs[4].value = g_tx_hash;
+        num_pairs = 5;
+    } else {
+        pairs[0].item = "From";
+        pairs[0].value = g_from_address;
+        pairs[1].item = "Amount";
+        pairs[1].value = g_amount;
+        pairs[2].item = "To";
+        pairs[2].value = g_to_address;
+        pairs[3].item = "Max fees";
+        pairs[3].value = g_max_fees;
+        num_pairs = 4;
+    }
+    
     // Setup list
     pairList.nbMaxLinesForValue = 0;
-    pairList.nbPairs = 4;
+    pairList.nbPairs = num_pairs;
     pairList.pairs = pairs;
 
     if (is_blind_signed) {
@@ -270,7 +331,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed, zond_tx_t *tx) {
                                        "Review transaction\n",
                                        NULL,
 #ifdef SCREEN_SIZE_WALLET
-                                       "Sign transaction\n",
+                                       "Accept risk and sign transaction?\n",
 #else
                                        NULL,
 #endif
@@ -294,8 +355,8 @@ int ui_display_transaction_bs_choice(bool is_blind_signed, zond_tx_t *tx) {
 }
 
 // Flow used to display a blind-signed transaction
-int ui_display_blind_signed_transaction(void) {
-    return ui_display_transaction_bs_choice(true, NULL);
+int ui_display_blind_signed_transaction(zond_tx_t *tx) {
+    return ui_display_transaction_bs_choice(true, tx);
 }
 
 // Flow used to display a clear-signed transaction
