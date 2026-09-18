@@ -33,6 +33,7 @@
 #include "send_response.h"
 #include "keccak256.h"
 #include "rlp_decode.h"
+#include "common_ui.h"
 
 int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
     if (p1 == 0) {

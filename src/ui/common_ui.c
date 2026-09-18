@@ -7,7 +7,7 @@
 #ifdef SCREEN_SIZE_WALLET
 static void ui_error_blind_signing_choice(bool confirm) {
     if (confirm) {
-        ui_menu_main();
+        ui_settings();
     } else {
         ui_menu_main();
     }

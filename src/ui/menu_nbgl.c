@@ -146,3 +146,40 @@ void ui_menu_main(void) {
                                 NULL,
                                 app_quit);
 }
+
+// setting
+void ui_settings(void) {
+    // Initialize switches data
+    switches[BLIND_SIGNING_SWITCH_ID].initState = (nbgl_state_t) N_storage.enable_blind_signing;
+    switches[BLIND_SIGNING_SWITCH_ID].text = "Blind signing";
+    switches[BLIND_SIGNING_SWITCH_ID].subText = "Enable transaction blind signing";
+    switches[BLIND_SIGNING_SWITCH_ID].token = BLIND_SIGNING_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[BLIND_SIGNING_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[NONCE_SWITCH_ID].initState = (nbgl_state_t) N_storage.display_nonce;
+    switches[NONCE_SWITCH_ID].text = "Nonce";
+    switches[NONCE_SWITCH_ID].subText = "Display nonce in transactions";
+    switches[NONCE_SWITCH_ID].token = NONCE_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[NONCE_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[TX_HASH_SWITCH_ID].initState = (nbgl_state_t) N_storage.display_tx_hash;
+    switches[TX_HASH_SWITCH_ID].text = "Transaction hash";
+    switches[TX_HASH_SWITCH_ID].subText = "Always display the transaction hash";
+    switches[TX_HASH_SWITCH_ID].token = TX_HASH_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[TX_HASH_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    nbgl_useCaseHomeAndSettings(APPNAME,
+                                &ICON_APP_HOME,
+                                NULL,
+                                0,
+                                &settingContents,
+                                &infoList,
+                                NULL,
+                                app_quit);
+}
