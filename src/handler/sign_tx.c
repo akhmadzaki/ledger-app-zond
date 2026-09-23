@@ -34,6 +34,9 @@
 #include "keccak256.h"
 #include "rlp_decode.h"
 #include "common_ui.h"
+#include "abi_calldata.h"
+
+
 
 int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
     if (p1 == 0) {
@@ -117,22 +120,35 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         }
         PRINTF("\n");
 
-        zond_tx_t tx;
-        explicit_bzero(&tx, sizeof(tx));
-        int err = decode_ledger_tx(G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len, &tx);
+        // zond_tx_t tx;
+        explicit_bzero(&G_context.tx_info.tx_data, sizeof(G_context.tx_info.tx_data));
+        int err = decode_ledger_tx(G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len, &G_context.tx_info.tx_data);
         if (err != 0) {
             PRINTF("Failed to decode\n");
             return io_send_sw(SW_TX_PARSING_FAIL);
         }
 
-        if(tx.data_len !=0 && !N_storage.enable_blind_signing) {
+        if(G_context.tx_info.tx_data.data_len !=0 && !N_storage.enable_blind_signing) {
             ui_error_blind_signing();
             return io_send_sw(SW_SIGNATURE_FAIL);
-        } else if(tx.data_len !=0 && N_storage.enable_blind_signing)  {
-            return ui_display_blind_signed_transaction(&tx);
+        } else if(G_context.tx_info.tx_data.to_len > 0 && G_context.tx_info.tx_data.data_len > 0 && N_storage.enable_debug_smart_contract && N_storage.enable_blind_signing) {
+            PRINTF("PARSE RLP CALLDATA\n");
+            // abi_calldata_t result;
+            if (abi_calldata_parse(G_context.tx_info.tx_data.data, G_context.tx_info.tx_data.data_len, NULL, &G_context.tx_info.calldata)) {
+                PRINTF("SUCCESS PARSING\n");
+                // abi_calldata_dump(&G_context.tx_info.calldata);
+                
+                ui_contract_call_init(G_context.tx_info.calldata.param_count);
+                return ui_confirm_selector();
+                // ui_confirm_parameter();
+            } else {
+                PRINTF("ERROR PARSING\n");
+            }
+        } else if(G_context.tx_info.tx_data.data_len !=0 && N_storage.enable_blind_signing)  {
+            return ui_display_blind_signed_transaction();
         }
 
-        return ui_display_transaction(&tx);
+        return ui_display_transaction();
         // return ui_display_blind_signed_transaction();
     } else if (p1 == 2 && p2 > 0 && p2 < 18) {
         if (G_context.req_type != CONFIRM_TRANSACTION) {

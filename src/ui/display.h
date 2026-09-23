@@ -2,6 +2,7 @@
 
 #include <stdbool.h>  // bool
 #include "rlp_decode.h"
+#include "types.h"
 
 #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #define ICON_APP_BOILERPLATE C_app_qrl_14px
@@ -32,7 +33,7 @@ int ui_display_address(void);
  * @return 0 if success, negative integer otherwise.
  *
  */
-int ui_display_transaction(zond_tx_t *);
+int ui_display_transaction();
 
 /**
  * Display blind-sign transaction information on the device and ask confirmation to sign.
@@ -40,4 +41,4 @@ int ui_display_transaction(zond_tx_t *);
  * @return 0 if success, negative integer otherwise.
  *
  */
-int ui_display_blind_signed_transaction(zond_tx_t *);
+int ui_display_blind_signed_transaction();

@@ -37,6 +37,7 @@ typedef struct internal_storage_t {
     uint8_t enable_blind_signing;
     uint8_t display_nonce;
     uint8_t display_tx_hash;
+    uint8_t enable_debug_smart_contract;
     uint8_t initialized;
     uint8_t is_sending_signature;
 } internal_storage_t;

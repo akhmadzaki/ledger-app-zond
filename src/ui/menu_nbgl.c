@@ -41,8 +41,8 @@ static const char *const INFO_TYPES[SETTING_INFO_NB] = {"Version", "Developer"};
 static const char *const INFO_CONTENTS[SETTING_INFO_NB] = {APPVERSION, "Ledger"};
 
 // settings switches definitions
-enum { BLIND_SIGNING_SWITCH_TOKEN = FIRST_USER_TOKEN, NONCE_SWITCH_TOKEN, TX_HASH_SWITCH_TOKEN };
-enum { BLIND_SIGNING_SWITCH_ID = 0, NONCE_SWITCH_ID, TX_HASH_SWITCH_ID, SETTINGS_SWITCHES_NB };
+enum { BLIND_SIGNING_SWITCH_TOKEN = FIRST_USER_TOKEN, NONCE_SWITCH_TOKEN, TX_HASH_SWITCH_TOKEN, DEBUG_SMART_CONTRACT_SWITCH_TOKEN };
+enum { BLIND_SIGNING_SWITCH_ID = 0, NONCE_SWITCH_ID, TX_HASH_SWITCH_ID, DEBUG_SMART_CONTRACT_SWITCH_ID, SETTINGS_SWITCHES_NB };
 
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
 
@@ -107,6 +107,10 @@ static void controls_callback(int token, uint8_t index, int page) {
         switch_value = !N_storage.display_tx_hash;
         switches[TX_HASH_SWITCH_ID].initState = (nbgl_state_t) switch_value;
         nvm_write((void *) &N_storage.display_tx_hash, &switch_value, 1);
+    }  else if (token == DEBUG_SMART_CONTRACT_SWITCH_TOKEN) {
+        switch_value = !N_storage.enable_debug_smart_contract;
+        switches[DEBUG_SMART_CONTRACT_SWITCH_ID].initState = (nbgl_state_t) switch_value;
+        nvm_write((void *) &N_storage.enable_debug_smart_contract, &switch_value, 1);
     }
 }
 
@@ -135,6 +139,18 @@ void ui_menu_main(void) {
     switches[TX_HASH_SWITCH_ID].token = TX_HASH_SWITCH_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[TX_HASH_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].initState = (nbgl_state_t) N_storage.enable_debug_smart_contract;
+#ifdef SCREEN_SIZE_WALLET
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].text = "Debug smart contracts";
+#else
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].text = "Debug contracts";
+#endif 
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].subText = "Display contract data details";
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].token = DEBUG_SMART_CONTRACT_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     nbgl_useCaseHomeAndSettings(APPNAME,
@@ -172,6 +188,18 @@ void ui_settings(void) {
     switches[TX_HASH_SWITCH_ID].token = TX_HASH_SWITCH_TOKEN;
 #ifdef HAVE_PIEZO_SOUND
     switches[TX_HASH_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
+#endif
+
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].initState = (nbgl_state_t) N_storage.enable_debug_smart_contract;
+#ifdef SCREEN_SIZE_WALLET
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].text = "Debug smart contracts";
+#else
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].text = "Debug contracts";
+#endif 
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].subText = "Display contract data details";
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].token = DEBUG_SMART_CONTRACT_SWITCH_TOKEN;
+#ifdef HAVE_PIEZO_SOUND
+    switches[DEBUG_SMART_CONTRACT_SWITCH_ID].tuneId = TUNE_TAP_CASUAL;
 #endif
 
     nbgl_useCaseHomeAndSettings(APPNAME,

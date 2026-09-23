@@ -3,6 +3,7 @@
 #include <sys/types.h>
 
 #include "rlp_decode.h"
+#include "types.h"
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     zond_tx_t tx;

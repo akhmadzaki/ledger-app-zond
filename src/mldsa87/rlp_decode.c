@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cx.h"
+#include "types.h"
 
 static int parse_rlp_item(const uint8_t *input,
                           size_t input_len,
@@ -210,6 +211,7 @@ int decode_ledger_tx(const uint8_t *rlp, size_t rlp_len, zond_tx_t *tx) {
         return -1;
     }
     memset(tx->to, 0, ADDRESS_LENGTH);
+    tx->to_len = val_len;
     if (val_len > 0) memcpy(tx->to, val_ptr, val_len);
     p += consumed;
     remaining -= consumed;
@@ -234,8 +236,9 @@ int decode_ledger_tx(const uint8_t *rlp, size_t rlp_len, zond_tx_t *tx) {
     }
     PRINTF("data val_len %u\n", val_len);
     PRINTF("data consumed %d\n", consumed);
+    PRINTF("MAX_DATA_SIZE %u\n", MAX_DATA_SIZE);
     memset(tx->data, 0, MAX_DATA_SIZE);
-    memcpy(tx->data, val_ptr, val_len);  // right-align
+    if (val_len > 0) memcpy(tx->data, val_ptr, val_len);  // right-align
     tx->data_len = val_len;
     p += consumed;
     remaining -= consumed;

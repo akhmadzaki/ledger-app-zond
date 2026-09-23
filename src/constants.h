@@ -23,9 +23,14 @@
 /**
  * Maximum transaction length (bytes).
  */
-#define MAX_TRANSACTION_LEN 4096
+#define MAX_TRANSACTION_LEN 5120
 
 /**
  * Prefix byte for QRL v2.0 addresses.
  */
 #define ZOND_ADDRESS_PREFIX 'Q'
+
+/**
+ * Maximum data field length (bytes).
+ */
+#define MAX_DATA_SIZE 5120
