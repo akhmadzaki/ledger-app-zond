@@ -65,17 +65,6 @@ static bool safe_add(size_t a, size_t b, size_t *out) {
     return true;
 }
 
-// /** Saturating multiplication: returns false on overflow. */
-// static bool safe_mul(size_t a, size_t b, size_t *out) {
-//     if (a == 0 || b == 0) {
-//         *out = 0;
-//         return true;
-//     }
-//     if (a > SIZE_MAX / b) return false;
-//     *out = a * b;
-//     return true;
-// }
-
 /* ================================================================== */
 /*  Internal helpers — calldata bounds                                 */
 /* ================================================================== */
@@ -849,14 +838,6 @@ const abi_param_t *abi_calldata_get_node(uint8_t index) {
     return &g_abi_pool[index];
 }
 
-/* ================================================================== */
-/*  Debug dump  (only when ABI_DEBUG_DUMP is defined)                  */
-/* ================================================================== */
-
-// #ifdef ABI_DEBUG_DUMP
-
-// #include <stdio.h>
-
 static void dump_param(const abi_param_t *p, int indent) {
     if (!p) { PRINTF("(null)\n"); return; }
 
@@ -954,16 +935,3 @@ void abi_calldata_dump(const abi_calldata_t *cd) {
         dump_param(abi_calldata_get_node(cd->params[i]), 0);
     }
 }
-
-// #else /* !ABI_DEBUG_DUMP — no-op stubs for embedded target */
-
-// static void dump_param(const abi_param_t *p, int indent) {
-//     (void) p;
-//     (void) indent;
-// }
-
-// void abi_calldata_dump(const abi_calldata_t *cd) {
-//     (void) cd;
-// }
-
-// #endif /* ABI_DEBUG_DUMP */

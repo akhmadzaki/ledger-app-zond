@@ -120,7 +120,6 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         }
         PRINTF("\n");
 
-        // zond_tx_t tx;
         explicit_bzero(&G_context.tx_info.tx_data, sizeof(G_context.tx_info.tx_data));
         int err = decode_ledger_tx(G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len, &G_context.tx_info.tx_data);
         if (err != 0) {
@@ -133,14 +132,10 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
             return io_send_sw(SW_SIGNATURE_FAIL);
         } else if(G_context.tx_info.tx_data.to_len > 0 && G_context.tx_info.tx_data.data_len > 0 && N_storage.enable_debug_smart_contract && N_storage.enable_blind_signing) {
             PRINTF("PARSE RLP CALLDATA\n");
-            // abi_calldata_t result;
             if (abi_calldata_parse(G_context.tx_info.tx_data.data, G_context.tx_info.tx_data.data_len, NULL, &G_context.tx_info.calldata)) {
-                PRINTF("SUCCESS PARSING\n");
-                // abi_calldata_dump(&G_context.tx_info.calldata);
-                
+                PRINTF("SUCCESS PARSING\n");                
                 ui_contract_call_init(G_context.tx_info.calldata.param_count);
                 return ui_confirm_selector();
-                // ui_confirm_parameter();
             } else {
                 PRINTF("ERROR PARSING\n");
             }

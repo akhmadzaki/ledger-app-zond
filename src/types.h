@@ -7,7 +7,6 @@
 
 #include "constants.h"
 #include "constant.h"
-// #include "rlp_decode.h"
 
 /**
  * Enumeration with expected INS of APDU commands.

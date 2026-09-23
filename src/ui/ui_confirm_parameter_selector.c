@@ -79,7 +79,6 @@ static void reviewChoice(bool confirm) {
             ui_display_transaction();
         }
     }
-    // helper_send_response_sig(0);
 }
 
 static void buildScreen(e_confirmation_type confirm_type) {
