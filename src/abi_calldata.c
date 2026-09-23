@@ -556,10 +556,6 @@ static bool decode_value(const uint8_t *cd, size_t cd_len,
         if (!in_bounds(head_off, ABI_SLOT_SIZE, cd_len)) return false;
         out->data     = cd + head_off;
         out->data_len = ABI_SLOT_SIZE;
-
-        /* Populate scalar union for common types.
-         * Values are right-aligned within the 64-byte slot, so the
-         * low 8 bytes sit at bytes [ABI_SLOT_SIZE-8 .. ABI_SLOT_SIZE-1]. */
         if (kind == ABI_KIND_UINT || kind == ABI_KIND_INT) {
             uint64_t v = 0;
             for (int i = (int)(ABI_SLOT_SIZE - 8); i < (int)ABI_SLOT_SIZE; i++)
@@ -583,8 +579,6 @@ static bool decode_value(const uint8_t *cd, size_t cd_len,
         *consumed = 1;
         return true;
     }
-
-    /* ===== dynamic bytes =========================================== */
     case ABI_KIND_BYTES: {
         out->is_dynamic = true;
         size_t tail_off;
