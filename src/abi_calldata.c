@@ -11,6 +11,13 @@
 
 #include <string.h>
 
+static bool decode_value(const uint8_t *cd, size_t cd_len,
+                         const char *type_str,
+                         size_t head_off,
+                         size_t *consumed,
+                         abi_param_t *out,
+                         int depth);
+
 /* ------------------------------------------------------------------ */
 /*  Local replacements for libc functions that pull .data symbols      */
 /*  (ctype isdigit table, stdio buffers, strtoul).                     */
@@ -402,6 +409,129 @@ static bool type_is_dynamic(const char *type_str) {
     return is_dyn;
 }
 
+static bool staticParameterCase(const uint8_t *cd, size_t cd_len,
+                         size_t head_off,
+                         size_t *consumed,
+                         abi_param_t *out, abi_kind_t kind) {
+    if (!in_bounds(head_off, ABI_SLOT_SIZE, cd_len)) return false;
+    out->data     = cd + head_off;
+    out->data_len = ABI_SLOT_SIZE;
+    if (kind == ABI_KIND_UINT || kind == ABI_KIND_INT) {
+        uint64_t v = 0;
+        for (int i = (int)(ABI_SLOT_SIZE - 8); i < (int)ABI_SLOT_SIZE; i++)
+            v = (v << 8) | cd[head_off + i];
+        if (kind == ABI_KIND_UINT) {
+            out->scalar.u64 = v;
+        } else {
+            out->scalar.i64 = (int64_t) v;
+        }
+        out->scalar.u32 = (uint32_t) v;
+        out->scalar.u16 = (uint16_t) v;
+        out->scalar.u8  = (uint8_t)  v;
+        out->scalar.i32 = (int32_t)  v;
+        out->scalar.i16 = (int16_t)  v;
+        out->scalar.i8  = (int8_t)   v;
+    } else if (kind == ABI_KIND_BOOL) {
+        out->scalar.boolean = (cd[head_off + ABI_SLOT_SIZE - 1] != 0);
+    } else if (kind == ABI_KIND_ADDRESS) {
+        memcpy(out->scalar.addr, cd + head_off, 64);
+    }
+    *consumed = 1;
+    return true;
+}
+
+static bool tupleParameterCase(const uint8_t *cd, size_t cd_len,
+                         const char *type_str,
+                         size_t head_off,
+                         size_t *consumed,
+                         abi_param_t *out,
+                         int depth) {
+    /* Parse the tuple members from the type string.
+        * type_str looks like "(uint256,bytes,address)" */
+    const char *p = type_str;
+    if (*p != '(') return false;
+    p++; /* skip '(' */
+
+    /* First pass: count members */
+    size_t member_count = 0;
+    {
+        sig_ctx_t tmp_ctx = { .sig = p, .pos = 0, .len = strlen(p) };
+        char dummy[ABI_TYPE_STR_MAX];
+        while (sig_peek(&tmp_ctx) != ')' && sig_peek(&tmp_ctx) != '\0') {
+            sig_skip_ws(&tmp_ctx);
+            if (sig_peek(&tmp_ctx) == ')' || sig_peek(&tmp_ctx) == '\0') break;
+            size_t consumed_sig = sig_parse_type(&tmp_ctx, dummy, sizeof(dummy));
+            if (consumed_sig == 0) return false;
+            member_count++;
+            sig_skip_ws(&tmp_ctx);
+            if (sig_peek(&tmp_ctx) == ',') sig_advance(&tmp_ctx);
+        }
+    }
+
+    if (member_count > ABI_MAX_CHILDREN) return false;
+
+    out->child_count = (uint8_t) member_count;
+
+    if (member_count == 0) {
+        /* Empty tuple — static, 0 slots */
+        *consumed = 0;
+        return true;
+    }
+
+    /* Determine if tuple is dynamic: check if any member is dynamic */
+    bool tuple_is_dynamic = false;
+    {
+        sig_ctx_t tmp_ctx = { .sig = p, .pos = 0, .len = strlen(p) };
+        char memb[ABI_TYPE_STR_MAX];
+        for (size_t i = 0; i < member_count; i++) {
+            sig_skip_ws(&tmp_ctx);
+            sig_parse_type(&tmp_ctx, memb, sizeof(memb));
+            sig_skip_ws(&tmp_ctx);
+            if (sig_peek(&tmp_ctx) == ',') sig_advance(&tmp_ctx);
+
+            if (type_is_dynamic(memb)) {
+                tuple_is_dynamic = true;
+                break;
+            }
+        }
+    }
+
+    out->is_dynamic = tuple_is_dynamic;
+
+    size_t cursor;
+    if (tuple_is_dynamic) {
+        /* Head contains a single offset to the tail */
+        if (!read_u256_be(cd, cd_len, head_off, &cursor)) return false;
+    } else {
+        cursor = head_off;
+    }
+
+    /* Second pass: decode each member */
+    {
+        sig_ctx_t tmp_ctx = { .sig = p, .pos = 0, .len = strlen(p) };
+        char memb[ABI_TYPE_STR_MAX];
+        for (size_t i = 0; i < member_count; i++) {
+            sig_skip_ws(&tmp_ctx);
+            sig_parse_type(&tmp_ctx, memb, sizeof(memb));
+            sig_skip_ws(&tmp_ctx);
+            if (sig_peek(&tmp_ctx) == ',') sig_advance(&tmp_ctx);
+
+            abi_param_t *child = pool_alloc();
+            if (!child) return false;
+            out->children[i] = (uint8_t)(child - g_abi_pool);
+
+            size_t memb_consumed;
+            if (!decode_value(cd, cd_len, memb,
+                                cursor, &memb_consumed,
+                                child, depth + 1)) return false;
+            cursor += memb_consumed * ABI_SLOT_SIZE;
+        }
+    }
+
+    *consumed = tuple_is_dynamic ? 1 : (cursor - head_off) / ABI_SLOT_SIZE;
+    return true;
+}
+
 /* ================================================================== */
 /*  Core decoder                                                      */
 /* ================================================================== */
@@ -553,31 +683,7 @@ static bool decode_value(const uint8_t *cd, size_t cd_len,
     case ABI_KIND_FIXED:
     case ABI_KIND_UFIXED:
     case ABI_KIND_FUNCTION: {
-        if (!in_bounds(head_off, ABI_SLOT_SIZE, cd_len)) return false;
-        out->data     = cd + head_off;
-        out->data_len = ABI_SLOT_SIZE;
-        if (kind == ABI_KIND_UINT || kind == ABI_KIND_INT) {
-            uint64_t v = 0;
-            for (int i = (int)(ABI_SLOT_SIZE - 8); i < (int)ABI_SLOT_SIZE; i++)
-                v = (v << 8) | cd[head_off + i];
-            if (kind == ABI_KIND_UINT) {
-                out->scalar.u64 = v;
-            } else {
-                out->scalar.i64 = (int64_t) v;
-            }
-            out->scalar.u32 = (uint32_t) v;
-            out->scalar.u16 = (uint16_t) v;
-            out->scalar.u8  = (uint8_t)  v;
-            out->scalar.i32 = (int32_t)  v;
-            out->scalar.i16 = (int16_t)  v;
-            out->scalar.i8  = (int8_t)   v;
-        } else if (kind == ABI_KIND_BOOL) {
-            out->scalar.boolean = (cd[head_off + ABI_SLOT_SIZE - 1] != 0);
-        } else if (kind == ABI_KIND_ADDRESS) {
-            memcpy(out->scalar.addr, cd + head_off, 64);
-        }
-        *consumed = 1;
-        return true;
+        return staticParameterCase(cd, cd_len, head_off, consumed, out, kind);
     }
     case ABI_KIND_BYTES: {
         out->is_dynamic = true;
@@ -608,90 +714,12 @@ static bool decode_value(const uint8_t *cd, size_t cd_len,
 
     /* ===== tuple =================================================== */
     case ABI_KIND_TUPLE: {
-        /* Parse the tuple members from the type string.
-         * type_str looks like "(uint256,bytes,address)" */
-        const char *p = type_str;
-        if (*p != '(') return false;
-        p++; /* skip '(' */
-
-        /* First pass: count members */
-        size_t member_count = 0;
-        {
-            sig_ctx_t tmp_ctx = { .sig = p, .pos = 0, .len = strlen(p) };
-            char dummy[ABI_TYPE_STR_MAX];
-            while (sig_peek(&tmp_ctx) != ')' && sig_peek(&tmp_ctx) != '\0') {
-                sig_skip_ws(&tmp_ctx);
-                if (sig_peek(&tmp_ctx) == ')' || sig_peek(&tmp_ctx) == '\0') break;
-                size_t consumed_sig = sig_parse_type(&tmp_ctx, dummy, sizeof(dummy));
-                if (consumed_sig == 0) return false;
-                member_count++;
-                sig_skip_ws(&tmp_ctx);
-                if (sig_peek(&tmp_ctx) == ',') sig_advance(&tmp_ctx);
-            }
-        }
-
-        if (member_count > ABI_MAX_CHILDREN) return false;
-
-        out->child_count = (uint8_t) member_count;
-
-        if (member_count == 0) {
-            /* Empty tuple — static, 0 slots */
-            *consumed = 0;
-            return true;
-        }
-
-        /* Determine if tuple is dynamic: check if any member is dynamic */
-        bool tuple_is_dynamic = false;
-        {
-            sig_ctx_t tmp_ctx = { .sig = p, .pos = 0, .len = strlen(p) };
-            char memb[ABI_TYPE_STR_MAX];
-            for (size_t i = 0; i < member_count; i++) {
-                sig_skip_ws(&tmp_ctx);
-                sig_parse_type(&tmp_ctx, memb, sizeof(memb));
-                sig_skip_ws(&tmp_ctx);
-                if (sig_peek(&tmp_ctx) == ',') sig_advance(&tmp_ctx);
-
-                if (type_is_dynamic(memb)) {
-                    tuple_is_dynamic = true;
-                    break;
-                }
-            }
-        }
-
-        out->is_dynamic = tuple_is_dynamic;
-
-        size_t cursor;
-        if (tuple_is_dynamic) {
-            /* Head contains a single offset to the tail */
-            if (!read_u256_be(cd, cd_len, head_off, &cursor)) return false;
-        } else {
-            cursor = head_off;
-        }
-
-        /* Second pass: decode each member */
-        {
-            sig_ctx_t tmp_ctx = { .sig = p, .pos = 0, .len = strlen(p) };
-            char memb[ABI_TYPE_STR_MAX];
-            for (size_t i = 0; i < member_count; i++) {
-                sig_skip_ws(&tmp_ctx);
-                sig_parse_type(&tmp_ctx, memb, sizeof(memb));
-                sig_skip_ws(&tmp_ctx);
-                if (sig_peek(&tmp_ctx) == ',') sig_advance(&tmp_ctx);
-
-                abi_param_t *child = pool_alloc();
-                if (!child) return false;
-                out->children[i] = (uint8_t)(child - g_abi_pool);
-
-                size_t memb_consumed;
-                if (!decode_value(cd, cd_len, memb,
-                                  cursor, &memb_consumed,
-                                  child, depth + 1)) return false;
-                cursor += memb_consumed * ABI_SLOT_SIZE;
-            }
-        }
-
-        *consumed = tuple_is_dynamic ? 1 : (cursor - head_off) / ABI_SLOT_SIZE;
-        return true;
+        return tupleParameterCase(cd, cd_len,
+                         type_str,
+                         head_off,
+                         consumed,
+                         out,
+                         depth);
     }
 
     default:
