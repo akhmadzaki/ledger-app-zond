@@ -24,74 +24,124 @@
 #include "sw.h"
 #include "globals.h"
 #include "send_response.h"
-#include "sign.h"
-#include "keccak256.h"
+
+const uint8_t QRL_CTX [] = {'Z', 'O', 'N', 'D', 0x01, 0x01, 0x00, 0x00};
 
 void validate_pubkey(bool choice) {
     if (choice) {
         helper_send_response_address();
     } else {
+        PRINTF("HERE 1\n");
         io_send_sw(SW_DENY);
     }
 }
 
 static int crypto_sign_message(void) {
-    cx_err_t error = 0;
-
+    PRINTF("crypto sign start\n");
     PRINTF("bip32_path_len %d\n", G_context.bip32_path_len);
     PRINTF("raw_tx_len %d\n", G_context.tx_info.raw_tx_len);
     PRINTF("SIGNING START\n");
-    error = crypto_sign_optimized(G_context.bip32_path,
-                                  G_context.bip32_path_len,
-                                  G_context.tx_info.m_hash,
-                                  32);
-    PRINTF("SIGNING END\n");
-    if (error != CX_OK) {
-        wipe_nvm_secrets();
+
+    static uint8_t sk[MLDSA87_SECRETKEYBYTES];
+    uint8_t sig[MLDSA87_SIGBYTES];
+    uint8_t raw_seed[64] = {0};
+    cx_err_t err =
+        os_derive_bip32_no_throw(CX_CURVE_SECP256K1, G_context.bip32_path, G_context.bip32_path_len, raw_seed, NULL);
+    if (err != CX_OK) {
         return -1;
     }
+
+    uint8_t mldsa87_seed[32] = {0};
+    for (int i = 0; i < 32; i++) {
+        mldsa87_seed[i] = raw_seed[i];
+    }
+
+    err = MLDSA_internal_keygen(sig, MLDSA87_PUBLICKEYBYTES, sk, sizeof(sk), mldsa87_seed, MLDSA_87);
+    explicit_bzero(mldsa87_seed, sizeof(mldsa87_seed));
+    explicit_bzero(raw_seed, sizeof(raw_seed));
+    if (err != CX_OK) {
+        return -1;
+    }
+    // explicit_bzero(sig, sizeof(sig));
+
+    size_t actual_len = 0;
+    PRINTF("HASH: ");
+    for(int i = 0; i < 32; i++) {
+        PRINTF("%02x", G_context.tx_info.m_hash[i]);
+    }
+    PRINTF("\n");
+
+    PRINTF("CTX: ");
+    for(unsigned int i = 0; i < sizeof(QRL_CTX); i++) {
+        PRINTF("%02x", QRL_CTX[i]);
+    }
+    PRINTF("\n");
+
+    err = MLDSA_sign(sig,
+                    sizeof(sig),
+                    &actual_len,
+                    G_context.tx_info.m_hash,
+                    32,
+                    QRL_CTX,
+                    sizeof(QRL_CTX),
+                    sk,
+                    sizeof(sk),
+                    MLDSA_87);
+    explicit_bzero(sk, sizeof(sk));
     PRINTF("bip32_path_len %d\n", G_context.bip32_path_len);
     PRINTF("raw_tx_len %d\n", G_context.tx_info.raw_tx_len);
+
+    for (size_t i = 0; i < MLDSA87_SIGBYTES; i++) {
+        uint8_t tmp = sig[i];
+        nvm_write((void *) &N_storage.sig[i], &tmp, sizeof(uint8_t));
+    }
+    
+    PRINTF("SIGNING END\n");
+    if (err != CX_OK || actual_len != MLDSA87_SIGBYTES) {
+        return -1;
+    }
     PRINTF("VERIFY START\n");
-    bool is_verified = false;
-    error = crypto_verify_optimized(G_context.bip32_path,
-                                    G_context.bip32_path_len,
-                                    (uint8_t *) N_storage.sig,
-                                    CRYPTO_BYTES,
-                                    G_context.tx_info.m_hash,
-                                    32,
-                                    &is_verified);
+
+    err = MLDSA_verify((uint8_t *) N_storage.sig,
+                      sizeof(N_storage.sig),
+                      G_context.tx_info.m_hash,
+                      32,
+                      QRL_CTX,
+                      sizeof(QRL_CTX),
+                      (uint8_t *) N_storage.pk,
+                      sizeof(N_storage.pk),
+                      MLDSA_87);
+
     PRINTF("VERIFY END\n");
-    wipe_nvm_secrets();
-    if (is_verified) {
+    if (err == CX_OK) {
         PRINTF("SIGNATURE CORRECT\n");
     } else {
         PRINTF("SIGNATURE WRONG\n");
     }
-    // for(int i = 0; i < CRYPTO_BYTES; i++) {
-    //     PRINTF("%02x", N_storage.sig[i]);
-    // }
-    // PRINTF("\n");
 
-    if (error != CX_OK || !is_verified) {
+    if (err != CX_OK) {
         return -1;
     }
 
     return 0;
 }
 
-void validate_transaction(bool choice) {
+bool validate_transaction(bool choice) {
     if (choice) {
         G_context.state = STATE_APPROVED;
 
         if (crypto_sign_message() != 0) {
             G_context.state = STATE_NONE;
             io_send_sw(SW_SIGNATURE_FAIL);
+            return false;
         } else {
             helper_send_response_sig(0);
+            return true;
         }
     } else {
-        G_context.state = STATE_NONE;
+        PRINTF("HERE 2\n");
+        // G_context.state = STATE_NONE;
         io_send_sw(SW_DENY);
+        return false;
     }
 }

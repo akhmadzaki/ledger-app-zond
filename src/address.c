@@ -28,10 +28,10 @@
 
 #include "address.h"
 
-#include "constant.h"
-#include "mldsa87.h"
-#include "shake256.h"
+#include "constants.h"
 #include "globals.h"
+#include "lcx_mldsa.h"
+#include "lcx_sha3.h"
 
 bool is_valid_zond_bip32_path(const uint32_t bip32_path[], size_t bip32_path_len) {
     if (bip32_path_len != 5) {
@@ -49,33 +49,69 @@ bool is_valid_zond_bip32_path(const uint32_t bip32_path[], size_t bip32_path_len
 cx_err_t address_from_bip32_path(const uint32_t bip32_path[],
                                  size_t bip32_path_len,
                                  uint8_t address[ADDRESS_SIZE]) {
+    PRINTF("address start\n");
     uint8_t raw_seed[64] = {0};
+    PRINTF("%d\n", bip32_path_len);
     cx_err_t err =
         os_derive_bip32_no_throw(CX_CURVE_SECP256K1, bip32_path, bip32_path_len, raw_seed, NULL);
+    PRINTF("after derive\n");
     if (err != CX_OK) {
+        PRINTF("0x%x\n", err);
         return err;
     }
+    PRINTF("after error\n");
     uint8_t mldsa87_seed[32] = {0};
     for (int i = 0; i < 32; i++) {
         mldsa87_seed[i] = raw_seed[i];
     }
+    uint8_t sk[MLDSA87_SECRETKEYBYTES] = {0};
+    uint8_t pk[MLDSA87_PUBLICKEYBYTES] = {0};
+    PRINTF("keygen start\n");
+    err = MLDSA_internal_keygen(pk, sizeof(pk), sk, sizeof(sk), mldsa87_seed, MLDSA_87);
+    explicit_bzero(mldsa87_seed, sizeof(mldsa87_seed));
     explicit_bzero(raw_seed, sizeof(raw_seed));
-    nbgl_useCaseSpinner("Getting address");
-    ErrorCode mldsa_err = new_mldsa87_from_seed(&mldsa87_seed);
-    if (mldsa_err != ERR_NONE) {
-        return CX_INTERNAL_ERROR;
+    explicit_bzero(sk, sizeof(sk));
+    PRINTF("keygen end\n");
+    if (err != CX_OK) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < MLDSA87_PUBLICKEYBYTES; i++) {
+        uint8_t tmp = pk[i];
+        nvm_write((void *) &N_storage.pk[i], &tmp, sizeof(uint8_t));
     }
 
     uint8_t desc[DESCRIPTOR_BYTES] = {1, 0, 0};  // ML-DSA-87 descriptor
 
     // address = SHAKE256_XOF(descriptor || pk, 64)
-    shake256_ctx ctx;
-    shake256_init(&ctx);
-    shake256_absorb(&ctx, desc, DESCRIPTOR_BYTES);
-    shake256_absorb(&ctx, (const uint8_t *) N_storage.pk, CRYPTO_PUBLIC_KEY_BYTES);
-    shake256_finalize(&ctx);
-    shake256_squeeze(&ctx, address, ADDRESS_SIZE);
-    shake256_clear(&ctx);
+    // shake256_ctx ctx;
+    // shake256_init(&ctx);
+    // shake256_absorb(&ctx, desc, DESCRIPTOR_BYTES);
+    // shake256_absorb(&ctx, N_storage.pk, MLDSA87_PUBLICKEYBYTES);
+    // shake256_finalize(&ctx);
+    // shake256_squeeze(&ctx, address, ADDRESS_SIZE);
+    // shake256_clear(&ctx);
+    cx_sha3_t hash;
+    err = cx_sha3_xof_init_no_throw(&hash, 256, ADDRESS_SIZE);
+    if(err != CX_OK) {
+        return -1;
+    }
+    err =  cx_sha3_update(&hash, desc, DESCRIPTOR_BYTES);
+    if(err != CX_OK) {
+        return -1;
+    }
+
+    err = cx_sha3_update(&hash,  (const uint8_t *) N_storage.pk, MLDSA87_PUBLICKEYBYTES);
+    if(err != CX_OK) {
+        return -1;
+    }
+
+    err = cx_sha3_final(&hash, address);
+    if(err != CX_OK) {
+        return -1;
+    }
+    PRINTF("END\n");
+
     return 0;
 }
 
@@ -95,12 +131,25 @@ bool format_checksummed_address(const uint8_t address[ADDRESS_SIZE], char *out, 
     }
 
     uint8_t mask[ADDRESS_SIZE] = {0};
-    shake256_ctx ctx;
-    shake256_init(&ctx);
-    shake256_absorb(&ctx, (const uint8_t *) body, 2 * ADDRESS_SIZE);
-    shake256_finalize(&ctx);
-    shake256_squeeze(&ctx, mask, ADDRESS_SIZE);
-    shake256_clear(&ctx);
+    // shake256_ctx ctx;
+    // shake256_init(&ctx);
+    // shake256_absorb(&ctx, (const uint8_t *) body, 2 * ADDRESS_SIZE);
+    // shake256_finalize(&ctx);
+    // shake256_squeeze(&ctx, mask, ADDRESS_SIZE);
+    // shake256_clear(&ctx);
+    cx_sha3_t hash;
+    cx_err_t err = cx_sha3_xof_init_no_throw(&hash, 256, ADDRESS_SIZE);
+    if(err != CX_OK) {
+        return false;
+    }
+    err =  cx_sha3_update(&hash, (const uint8_t *) body, 2 * ADDRESS_SIZE);
+    if(err != CX_OK) {
+        return false;
+    }
+    err = cx_sha3_final(&hash, mask);
+    if(err != CX_OK) {
+        return false;
+    }
 
     for (int i = 0; i < 2 * ADDRESS_SIZE; i++) {
         uint8_t nibble = (i % 2 == 0) ? (mask[i / 2] >> 4) : (mask[i / 2] & 0x0f);

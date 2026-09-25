@@ -31,10 +31,10 @@
 #include "display.h"
 #include "validate.h"
 #include "send_response.h"
-#include "keccak256.h"
 #include "rlp_decode.h"
 #include "common_ui.h"
 #include "abi_calldata.h"
+#include "lcx_sha3.h"
 
 
 
@@ -108,24 +108,53 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         G_context.state = STATE_PARSED;
 
         // Hash message
-        keccak256_ctx ctx;
-        keccak256_init(&ctx);
-        keccak256_absorb(&ctx, G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len);
-        keccak256_finalize(&ctx);
-        keccak256_squeeze(&ctx, G_context.tx_info.m_hash);
-        keccak256_clear(&ctx);
+        // keccak256_ctx ctx;
+        // keccak256_init(&ctx);
+        // keccak256_absorb(&ctx, G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len);
+        // keccak256_finalize(&ctx);
+        // keccak256_squeeze(&ctx, G_context.tx_info.m_hash);
+        // keccak256_clear(&ctx);
+        cx_err_t error = cx_keccak_256_hash(G_context.tx_info.raw_tx,
+                                          G_context.tx_info.raw_tx_len,
+                                          G_context.tx_info.m_hash);
+        if(error != CX_OK) {
+            return io_send_sw(SW_SIGNATURE_FAIL);
+        }
         PRINTF("MESSAGE HASH: ");
         for (int i = 0; i < 32; i++) {
             PRINTF("%02x", G_context.tx_info.m_hash[i]);
         }
         PRINTF("\n");
 
-        explicit_bzero(&G_context.tx_info.tx_data, sizeof(G_context.tx_info.tx_data));
+        if (G_context.req_type == CONFIRM_TRANSACTION) {
+            PRINTF("TRANSACTION\n");
+        }
+
+        // explicit_bzero(&G_context.tx_info.tx_data, sizeof(G_context.tx_info.tx_data));
+        PRINTF("%d\n", sizeof(G_context.tx_info.raw_tx));
+        PRINTF("%d\n", G_context.tx_info.raw_tx_len);
         int err = decode_ledger_tx(G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len, &G_context.tx_info.tx_data);
+
+        PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
+        // #ifdef TARGET_NANOX
+        //     PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
+        //     if(G_context.tx_info.tx_data.data_len > 0) {
+        //         return io_send_sw(SW_SIGNATURE_FAIL);
+        //     }
+        // #endif
+
         if (err != 0) {
             PRINTF("Failed to decode\n");
             return io_send_sw(SW_TX_PARSING_FAIL);
         }
+
+        PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
+        #ifdef TARGET_NANOX
+            PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
+            if(G_context.tx_info.tx_data.data_len > 0) {
+                return io_send_sw(SW_SIGNATURE_FAIL);
+            }
+        #endif
 
         if(G_context.tx_info.tx_data.data_len !=0 && !N_storage.enable_blind_signing) {
             ui_error_blind_signing();

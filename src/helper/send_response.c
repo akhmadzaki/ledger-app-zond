@@ -25,7 +25,6 @@
 #include "constants.h"
 #include "globals.h"
 #include "sw.h"
-#include "constant.h"
 
 int helper_send_response_address() {
     uint8_t resp[1 + ADDRESS_SIZE] = {0};

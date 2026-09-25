@@ -132,6 +132,7 @@ int decode_ledger_tx(const uint8_t *rlp, size_t rlp_len, zond_tx_t *tx) {
         return -1;
     }
 
+
     PRINTF("header len %d\n", list_header_len);
     PRINTF("payload len %d\n", list_payload_len);
 
@@ -230,13 +231,12 @@ int decode_ledger_tx(const uint8_t *rlp, size_t rlp_len, zond_tx_t *tx) {
 
     // 8. data
     consumed = parse_rlp_item(p, remaining, &val_ptr, &val_len);
-    if (consumed < 0) {
+    if (consumed < 0 || val_len > MAX_DATA_SIZE) {
         PRINTF("Invalid data field\n");
         return -1;
     }
-    PRINTF("data val_len %u\n", val_len);
-    PRINTF("data consumed %d\n", consumed);
-    PRINTF("MAX_DATA_SIZE %u\n", MAX_DATA_SIZE);
+    PRINTF("consumed %d\n", consumed);
+    PRINTF("val_len %d\n", val_len);
     memset(tx->data, 0, MAX_DATA_SIZE);
     if (val_len > 0) memcpy(tx->data, val_ptr, val_len);  // right-align
     tx->data_len = val_len;

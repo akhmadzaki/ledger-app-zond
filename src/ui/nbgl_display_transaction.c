@@ -50,8 +50,6 @@ static nbgl_contentTagValueList_t pairList;
 #define MAX_DECIMAL_DIGITS 40
 #define MAX_RESULT_LEN     50
 
-
-
 static void uint8_array_to_decimal(const uint8_t *bytes, size_t len, char *out) {
     uint8_t temp[32] = {0};  // Ensure full zero-init
     memcpy(temp, bytes, len);
@@ -139,9 +137,9 @@ static void convert_amount_to_eth(const uint8_t *amount,
 // called when long press button on 3rd page is long-touched or when reject footer is touched
 static void review_choice(bool confirm) {
     // Answer, display a status page and go back to main
-    nbgl_useCaseSpinner("Signing");
-    validate_transaction(confirm);
-    if (confirm) {
+    // nbgl_useCaseSpinner("Signing");
+    bool result = validate_transaction(confirm);
+    if (confirm && result) {
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, ui_menu_main);
     } else {
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_menu_main);
@@ -170,13 +168,17 @@ void print_tx_utils() {
     for (int i = 0; i < G_context.tx_info.tx_data.gas_len; i++) PRINTF("%02x", G_context.tx_info.tx_data.gas[i]);
     PRINTF("\n");
 
-    PRINTF("To: 0x");
-    for (int i = 0; i < ADDRESS_LENGTH; i++) PRINTF("%02x", G_context.tx_info.tx_data.to[i]);
-    PRINTF("\n");
-
-    PRINTF("Value: 0x");
-    for (int i = 0; i < G_context.tx_info.tx_data.value_len; i++) PRINTF("%02x", G_context.tx_info.tx_data.value[i]);
-    PRINTF("\n");
+    if(G_context.tx_info.tx_data.to_len > 0) {
+        PRINTF("To: 0x");
+        for (int i = 0; i < ADDRESS_LENGTH; i++) PRINTF("%02x", G_context.tx_info.tx_data.to[i]);
+        PRINTF("\n");
+    }
+    
+    if(G_context.tx_info.tx_data.value_len > 0) {
+        PRINTF("Value: 0x");
+        for (int i = 0; i < G_context.tx_info.tx_data.value_len; i++) PRINTF("%02x", G_context.tx_info.tx_data.value[i]);
+        PRINTF("\n");
+    }
     PRINTF("================\n");
 }
 
@@ -187,21 +189,22 @@ void print_tx_utils() {
 // - Display a warning if the transaction is blind-signed
 int ui_display_transaction_bs_choice(bool is_blind_signed) {
     if (G_context.req_type != CONFIRM_TRANSACTION || G_context.state != STATE_PARSED) {
+        PRINTF("ERROR HERE\n");
         G_context.state = STATE_NONE;
         return io_send_sw(SW_BAD_STATE);
     }
 
-    print_tx_utils();
+    // print_tx_utils();
 
-    PRINTF("DERIVE ADDRESS START\n");
-    nbgl_useCaseSpinner("Getting address");
-    cx_err_t error =
-        address_from_bip32_path(G_context.bip32_path, G_context.bip32_path_len, G_context.address);
-    if (error != CX_OK) {
-        return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
-    }
-    PRINTF("DERIVE ADDRESS END\n");
-    PRINTF("from ");
+        PRINTF("DERIVE ADDRESS START\n");
+        cx_err_t error =
+            address_from_bip32_path(G_context.bip32_path, G_context.bip32_path_len, G_context.address);
+        if (error != CX_OK) {
+            return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
+        }
+        PRINTF("DERIVE ADDRESS END\n");
+
+    PRINTF("from Q");
     for (int i = 0; i < ADDRESS_SIZE; i++) {
         PRINTF("%02x", G_context.address[i]);
     }
@@ -215,7 +218,6 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     memset(tx_hash, 0, sizeof(tx_hash));
     bytes_to_hex_string(G_context.tx_info.m_hash, 32, tx_hash);
     tx_hash[64] = '\0';
-    PRINTF("tx hash %s\n", tx_hash);
     memset(g_tx_hash, 0, sizeof(g_tx_hash));
     snprintf(g_tx_hash, sizeof(g_tx_hash), "0x%.*s", sizeof(tx_hash), tx_hash);
     PRINTF("tx hash %s\n", g_tx_hash);
@@ -239,8 +241,10 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     if (!format_checksummed_address(G_context.tx_info.tx_data.to, g_to_address, sizeof(g_to_address))) {
         return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
     }
-    PRINTF("to %s\n", g_to_address);
-
+    if(G_context.tx_info.tx_data.to_len > 0) {
+        PRINTF("to %s\n", g_to_address);
+    }
+    
     // Format max_fees
     char max_fees[30] = {0};
     memset(max_fees, 0, sizeof(max_fees));

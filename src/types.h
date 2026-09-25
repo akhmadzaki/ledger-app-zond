@@ -6,7 +6,7 @@
 #include "bip32.h"
 
 #include "constants.h"
-#include "constant.h"
+#include "lcx_mldsa.h"
 
 /**
  * Enumeration with expected INS of APDU commands.
@@ -101,13 +101,13 @@ typedef struct {
  * Structure for global context.
  */
 typedef struct {
-    state_e state;  /// state of the context
+    request_type_e req_type; 
+    state_e state;
+    uint32_t bip32_path[MAX_BIP32_PATH];    
+    uint8_t bip32_path_len;           
+    uint8_t address[ADDRESS_SIZE];  
     union {
-        pubkey_ctx_t pk_info;       /// public key context
-        transaction_ctx_t tx_info;  /// transaction context
-    };
-    request_type_e req_type;              /// user request
-    uint32_t bip32_path[MAX_BIP32_PATH];  /// BIP32 path
-    uint8_t bip32_path_len;               /// length of BIP32 path
-    uint8_t address[ADDRESS_SIZE];
+        pubkey_ctx_t pk_info;       
+        transaction_ctx_t tx_info;
+    };                                     
 } global_ctx_t;

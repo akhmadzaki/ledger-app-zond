@@ -18,4 +18,4 @@ void validate_pubkey(bool choice);
  *   User choice (either approved or rejectd).
  *
  */
-void validate_transaction(bool choice);
+bool validate_transaction(bool choice);
