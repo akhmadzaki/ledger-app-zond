@@ -131,12 +131,6 @@ bool format_checksummed_address(const uint8_t address[ADDRESS_SIZE], char *out, 
     }
 
     uint8_t mask[ADDRESS_SIZE] = {0};
-    // shake256_ctx ctx;
-    // shake256_init(&ctx);
-    // shake256_absorb(&ctx, (const uint8_t *) body, 2 * ADDRESS_SIZE);
-    // shake256_finalize(&ctx);
-    // shake256_squeeze(&ctx, mask, ADDRESS_SIZE);
-    // shake256_clear(&ctx);
     cx_sha3_t hash;
     cx_err_t err = cx_sha3_xof_init_no_throw(&hash, 256, ADDRESS_SIZE);
     if(err != CX_OK) {

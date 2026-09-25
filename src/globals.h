@@ -7,8 +7,6 @@
 #include "io.h"
 #include "types.h"
 #include "constants.h"
-// #include "polyvec.h"
-// #include "poly.h"
 
 /**
  * Global context for user requests.

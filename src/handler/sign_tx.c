@@ -130,18 +130,11 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
             PRINTF("TRANSACTION\n");
         }
 
-        // explicit_bzero(&G_context.tx_info.tx_data, sizeof(G_context.tx_info.tx_data));
         PRINTF("%d\n", sizeof(G_context.tx_info.raw_tx));
         PRINTF("%d\n", G_context.tx_info.raw_tx_len);
         int err = decode_ledger_tx(G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len, &G_context.tx_info.tx_data);
 
         PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
-        // #ifdef TARGET_NANOX
-        //     PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
-        //     if(G_context.tx_info.tx_data.data_len > 0) {
-        //         return io_send_sw(SW_SIGNATURE_FAIL);
-        //     }
-        // #endif
 
         if (err != 0) {
             PRINTF("Failed to decode\n");

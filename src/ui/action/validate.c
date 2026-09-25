@@ -24,6 +24,7 @@
 #include "sw.h"
 #include "globals.h"
 #include "send_response.h"
+#include "lcx_mldsa.h"
 
 const uint8_t QRL_CTX [] = {'Z', 'O', 'N', 'D', 0x01, 0x01, 0x00, 0x00};
 
@@ -62,7 +63,6 @@ static int crypto_sign_message(void) {
     if (err != CX_OK) {
         return -1;
     }
-    // explicit_bzero(sig, sizeof(sig));
 
     size_t actual_len = 0;
     PRINTF("HASH: ");
@@ -83,7 +83,7 @@ static int crypto_sign_message(void) {
                     G_context.tx_info.m_hash,
                     32,
                     QRL_CTX,
-                    sizeof(QRL_CTX),
+                    8,
                     sk,
                     sizeof(sk),
                     MLDSA_87);
@@ -103,7 +103,7 @@ static int crypto_sign_message(void) {
     PRINTF("VERIFY START\n");
 
     err = MLDSA_verify((uint8_t *) N_storage.sig,
-                      sizeof(N_storage.sig),
+                      MLDSA87_SIGBYTES,
                       G_context.tx_info.m_hash,
                       32,
                       QRL_CTX,
@@ -139,8 +139,6 @@ bool validate_transaction(bool choice) {
             return true;
         }
     } else {
-        PRINTF("HERE 2\n");
-        // G_context.state = STATE_NONE;
         io_send_sw(SW_DENY);
         return false;
     }

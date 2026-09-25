@@ -194,7 +194,6 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
         return io_send_sw(SW_BAD_STATE);
     }
 
-    // print_tx_utils();
 
         PRINTF("DERIVE ADDRESS START\n");
         cx_err_t error =
