@@ -25,6 +25,7 @@
 #include "globals.h"
 #include "send_response.h"
 #include "lcx_mldsa.h"
+#include "cx_mldsa_internal.h"
 
 const uint8_t QRL_CTX [] = {'Z', 'O', 'N', 'D', 0x01, 0x01, 0x00, 0x00};
 
@@ -107,9 +108,9 @@ static int crypto_sign_message(void) {
                       G_context.tx_info.m_hash,
                       32,
                       QRL_CTX,
-                      sizeof(QRL_CTX),
+                      8,
                       (uint8_t *) N_storage.pk,
-                      sizeof(N_storage.pk),
+                      MLDSA87_PUBLICKEYBYTES,
                       MLDSA_87);
 
     PRINTF("VERIFY END\n");

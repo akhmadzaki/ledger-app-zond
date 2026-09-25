@@ -32,6 +32,7 @@
 #include "globals.h"
 #include "lcx_mldsa.h"
 #include "lcx_sha3.h"
+#include "cx_mldsa_internal.h"
 
 bool is_valid_zond_bip32_path(const uint32_t bip32_path[], size_t bip32_path_len) {
     if (bip32_path_len != 5) {
