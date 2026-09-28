@@ -51,7 +51,7 @@ def test_sign_tx_short_tx(backend: BackendInterface, scenario_navigator: Navigat
     # RLP: type=02, chain_id=1, nonce=3, gas_tip_cap, gas_fee_cap, gas=25000,
     #      to=b94f...aaaa (64 bytes), value, data, access_list=empty,
     #      descriptor=[0x01, 0x00, 0x00] (ML-DSA-87), extra_params=empty
-    transaction = bytes.fromhex("02f86401038477359400850ba43b74008261a8b840b94f5374fce5edbc8e2a8697c15331677e6ebf0baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa88016345785d8a0000825544c08301000080")
+    transaction = bytes.fromhex("02f85f8205bc01843b9aca008477359400825208b840d46e8dd67c5d32be8058bb8eb970870f07244567d46e8dd67c5d32be8058bb8eb970870f07244567d46e8dd67c5d32be8058bb8eb970870f07244567abcdef12849184e72a80c08301000080")
 
     # Send the sign device instruction.
     # As it requires on-screen validation, the function is asynchronous.
@@ -108,7 +108,7 @@ def test_sign_tx_refused(backend: BackendInterface, scenario_navigator: Navigate
     path: str = "m/44'/238'/0'/0/0"
 
     # Unsigned go-qrl sighash preimage with 64-byte recipient
-    transaction = bytes.fromhex("02f86401038477359400850ba43b74008261a8b840b94f5374fce5edbc8e2a8697c15331677e6ebf0baaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa88016345785d8a0000825544c08301000080")
+    transaction = bytes.fromhex("02f85f8205bc01843b9aca008477359400825208b840d46e8dd67c5d32be8058bb8eb970870f07244567d46e8dd67c5d32be8058bb8eb970870f07244567d46e8dd67c5d32be8058bb8eb970870f07244567abcdef12849184e72a80c08301000080")
 
     with pytest.raises(ExceptionRAPDU) as e:
         with client.sign_tx(path=path, transaction=transaction):
