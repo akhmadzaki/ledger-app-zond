@@ -41,7 +41,7 @@ include_directories(../src/mldsa87)
 
 add_executable(test_rlp_decode test_rlp_decode.c)
 
-add_library(rlp_decode ../src/mldsa87/rlp_decode.c)
+add_library(rlp_decode ../src/rlp_decode.c)
 
 target_link_libraries(test_rlp_decode PUBLIC
                       rlp_decode

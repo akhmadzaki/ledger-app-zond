@@ -12,7 +12,7 @@ set(CMAKE_C_FLAGS_DEBUG
 )
 
 add_library(txparser
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/mldsa87/rlp_decode.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/rlp_decode.c
 )
 
 set_target_properties(txparser PROPERTIES SOVERSION 1)
