@@ -61,7 +61,6 @@ static bool abi_calldata_parse(const uint8_t *calldata,
 
     for (size_t i = 0; i < total_slots; i++) {
         const uint8_t *slot_ptr = calldata + 4 + (i * ABI_SLOT_SIZE);
-        // const uint8_t *val_ptr = slot_ptr + (ABI_SLOT_SIZE - 8);
         memcpy(out->params[i], slot_ptr, 64);
     }
     return true;
@@ -175,19 +174,7 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
         #ifdef TARGET_NANOX
             PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
-            if(G_context.tx_info.tx_data.data_len > 0) {
-                // return io_send_sw(SW_SIGNATURE_FAIL);
-            }
         #endif
-
-        // err = 0;
-        // for(int i = 0; i < 4; i++) {
-        //     if(G_context.tx_info.tx_data.data[i] != 0) {
-        //         err = 1;
-        //         break;
-        //     }
-        // }
-        // nvm_write((void *) &N_storage.initialized, &err, 1);
 
         if((G_context.tx_info.tx_data.data_len !=0) && !N_storage.enable_blind_signing) {
             ui_error_blind_signing();

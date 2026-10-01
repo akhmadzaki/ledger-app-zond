@@ -61,15 +61,10 @@ cx_err_t address_from_bip32_path(const uint32_t bip32_path[],
         return err;
     }
     PRINTF("after error\n");
-    // uint8_t mldsa87_seed[32] = {0};
-    // for (int i = 0; i < 32; i++) {
-    //     mldsa87_seed[i] = raw_seed[i];
-    // }
     uint8_t sk[MLDSA87_SECRETKEYBYTES] = {0};
     uint8_t pk[MLDSA87_PUBLICKEYBYTES] = {0};
     PRINTF("keygen start\n");
     err = MLDSA_internal_keygen(pk, sizeof(pk), sk, sizeof(sk), raw_seed, MLDSA_87);
-    // explicit_bzero(mldsa87_seed, sizeof(mldsa87_seed));
     explicit_bzero(raw_seed, sizeof(raw_seed));
     explicit_bzero(sk, sizeof(sk));
     PRINTF("keygen end\n");

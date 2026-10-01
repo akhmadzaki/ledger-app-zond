@@ -55,13 +55,7 @@ static int crypto_sign_message(void) {
         return -1;
     }
 
-    // uint8_t mldsa87_seed[32] = {0};
-    // for (int i = 0; i < 32; i++) {
-    //     mldsa87_seed[i] = raw_seed[i];
-    // }
-
     err = MLDSA_internal_keygen(sig, MLDSA87_PUBLICKEYBYTES, sk, sizeof(sk), raw_seed, MLDSA_87);
-    // explicit_bzero(mldsa87_seed, sizeof(mldsa87_seed));
     explicit_bzero(raw_seed, sizeof(raw_seed));
     if (err != CX_OK) {
         return -1;
@@ -144,7 +138,6 @@ bool validate_transaction(bool choice) {
             return false;
         } else {
             helper_send_response_sig(0);
-            // io_send_sw(SW_OK);
             return true;
         }
     } else {

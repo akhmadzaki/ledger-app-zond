@@ -30,7 +30,6 @@ static uint8_t g_param_count;
 
 char g_titleMsg[TITLE_MSG_LEN];
 char g_finishMsg[FINISH_MSG_LEN];
-// char parameterInfo[100];
 
 static char g_selector[9];
 static char g_parameter[140];
