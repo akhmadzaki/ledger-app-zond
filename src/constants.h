@@ -23,11 +23,8 @@
 /**
  * Maximum transaction length (bytes).
  */
-#ifdef TARGET_NANOX
-    #define MAX_TRANSACTION_LEN 512
-#else
-    #define MAX_TRANSACTION_LEN 2048
-#endif
+
+#define MAX_TRANSACTION_LEN 1920
 
 /**
  * Prefix byte for QRL v2.0 addresses.
@@ -37,11 +34,7 @@
 /**
  * Maximum data field length (bytes).
  */
-#ifdef TARGET_NANOX
-    #define MAX_DATA_SIZE 512
-#else
-    #define MAX_DATA_SIZE 2048
-#endif
+#define MAX_DATA_SIZE 1920
 
 #define ADDRESS_SIZE     64
 #define DESCRIPTOR_BYTES 3

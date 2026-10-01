@@ -33,8 +33,39 @@
 #include "send_response.h"
 #include "rlp_decode.h"
 #include "common_ui.h"
-#include "abi_calldata.h"
 #include "lcx_sha3.h"
+
+static bool abi_calldata_parse(const uint8_t *calldata,
+                        size_t         calldata_len,
+                        abi_calldata_t *out) {
+    if (!out) return false;
+    memset(out, 0, sizeof(*out));
+
+    if (!calldata && calldata_len > 0) return false;
+
+    if (calldata_len < ABI_SELECTOR_SIZE) return false;
+
+    memcpy(out->selector, calldata, ABI_SELECTOR_SIZE);
+    out->has_selector = true;
+
+    size_t data_len   = calldata_len - ABI_SELECTOR_SIZE;
+    size_t slot_count = data_len / ABI_SLOT_SIZE;
+    size_t remainder  = data_len % ABI_SLOT_SIZE;
+
+    if(remainder > 0) return false;
+
+    size_t total_slots = slot_count;
+    if (total_slots > ABI_MAX_PARAMS) total_slots = ABI_MAX_PARAMS;
+
+    out->param_count = (uint8_t) total_slots;
+
+    for (size_t i = 0; i < total_slots; i++) {
+        const uint8_t *slot_ptr = calldata + 4 + (i * ABI_SLOT_SIZE);
+        // const uint8_t *val_ptr = slot_ptr + (ABI_SLOT_SIZE - 8);
+        memcpy(out->params[i], slot_ptr, 64);
+    }
+    return true;
+}
 
 
 
@@ -145,23 +176,50 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         #ifdef TARGET_NANOX
             PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
             if(G_context.tx_info.tx_data.data_len > 0) {
-                return io_send_sw(SW_SIGNATURE_FAIL);
+                // return io_send_sw(SW_SIGNATURE_FAIL);
             }
         #endif
 
-        if(G_context.tx_info.tx_data.data_len !=0 && !N_storage.enable_blind_signing) {
+        // err = 0;
+        // for(int i = 0; i < 4; i++) {
+        //     if(G_context.tx_info.tx_data.data[i] != 0) {
+        //         err = 1;
+        //         break;
+        //     }
+        // }
+        // nvm_write((void *) &N_storage.initialized, &err, 1);
+
+        if((G_context.tx_info.tx_data.data_len !=0) && !N_storage.enable_blind_signing) {
             ui_error_blind_signing();
             return io_send_sw(SW_SIGNATURE_FAIL);
         } else if(G_context.tx_info.tx_data.to_len > 0 && G_context.tx_info.tx_data.data_len > 0 && N_storage.enable_debug_smart_contract && N_storage.enable_blind_signing) {
             PRINTF("PARSE RLP CALLDATA\n");
-            if (abi_calldata_parse(G_context.tx_info.tx_data.data, G_context.tx_info.tx_data.data_len, NULL, &G_context.tx_info.calldata)) {
-                PRINTF("SUCCESS PARSING\n");                
+            if (abi_calldata_parse(G_context.tx_info.tx_data.data, G_context.tx_info.tx_data.data_len, &G_context.tx_info.calldata)) {
+                PRINTF("SUCCESS PARSING\n");    
+                if(G_context.tx_info.calldata.has_selector) {
+                    PRINTF("SELECTOR: ");
+                    for(int i = 0; i < 4; i++) {
+                        PRINTF("%02x", G_context.tx_info.calldata.selector[i]);
+                    }   
+                }
+                PRINTF("\n");
+                PRINTF("PARAM COUNT: %d\n", G_context.tx_info.calldata.param_count);
+                if(G_context.tx_info.calldata.param_count) {
+                    for(int i = 0; i < G_context.tx_info.calldata.param_count; i++) {
+                        PRINTF("PARAM %d: ", i+1);
+                        for(int j = 0; j < 64; j++) {
+                            PRINTF("%02x", G_context.tx_info.calldata.params[i][j]);
+                        }
+                        PRINTF("\n");
+                    }
+                }
+                         
                 ui_contract_call_init(G_context.tx_info.calldata.param_count);
                 return ui_confirm_selector();
             } else {
                 PRINTF("ERROR PARSING\n");
             }
-        } else if(G_context.tx_info.tx_data.data_len !=0 && N_storage.enable_blind_signing)  {
+        } else if((G_context.tx_info.tx_data.data_len !=0) && N_storage.enable_blind_signing)  {
             return ui_display_blind_signed_transaction();
         }
 

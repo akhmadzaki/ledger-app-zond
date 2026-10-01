@@ -67,5 +67,12 @@ int handler_get_public_key(buffer_t *cdata, bool display) {
 }
 
 int handler_get_public_key_chunk(uint8_t chunk_index) {
+    if (G_context.req_type != CONFIRM_ADDRESS) {
+        return io_send_sw(SW_BAD_STATE);
+    }
+    if (G_context.state != STATE_APPROVED) {
+        return io_send_sw(SW_BAD_STATE);
+    }
+
     return helper_send_response_pk_chunk(chunk_index);
 }

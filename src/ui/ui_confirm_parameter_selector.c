@@ -14,11 +14,10 @@
 #include "sw.h"
 #include "common_ui.h"
 #include "menu.h"
-#include "abi_calldata.h"
 #include "ui_utils.h"
 
-#define TITLE_MSG_LEN  50
-#define FINISH_MSG_LEN 50
+#define TITLE_MSG_LEN  20
+#define FINISH_MSG_LEN 20
 
 static nbgl_contentTagValue_t g_pairs[1];
 static nbgl_contentTagValueList_t g_pairsList;
@@ -31,7 +30,7 @@ static uint8_t g_param_count;
 
 char g_titleMsg[TITLE_MSG_LEN];
 char g_finishMsg[FINISH_MSG_LEN];
-char parameterInfo[100];
+// char parameterInfo[100];
 
 static char g_selector[9];
 static char g_parameter[140];
@@ -61,6 +60,8 @@ static void reviewChoice(bool confirm) {
         G_context.state = STATE_NONE;
         io_send_sw(SW_DENY);   
         nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_menu_main);
+        explicit_bzero(&G_context, sizeof(G_context));
+        return;
     }
 
     if(g_current_screen == SELECTOR_CONFIRMATION) {
@@ -85,14 +86,14 @@ static void buildScreen(e_confirmation_type confirm_type) {
     g_pairs[0].item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
 
     if(confirm_type == PARAMETER_CONFIRMATION) {
+        memset(g_parameter, 0, sizeof(g_parameter));
         if(g_param_count > 0) {
-            const abi_param_t *param = abi_calldata_get_node(G_context.tx_info.calldata.params[g_param_index]);
             uint32_t offset = 0;
             uint32_t i;
             for (i = 0; i < 8; i++) {
                 offset += split_binary_parameter_part(g_parameter + offset,
                                                         sizeof(g_parameter) - offset,
-                                                        param->data + 8 * i);
+                                                        G_context.tx_info.calldata.params[g_param_index] + 8*i);
                 if (i != 3) {
                     g_parameter[offset++] = ':';
                 }

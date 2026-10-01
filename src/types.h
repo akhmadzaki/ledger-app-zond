@@ -76,14 +76,15 @@ typedef struct {
     uint8_t descriptor_len;
 } zond_tx_t;
 
-// /** Maximum number of top-level function parameters. */
 #define ABI_MAX_PARAMS 16
+#define ABI_SLOT_SIZE 64
+#define ABI_SELECTOR_SIZE 4
 
 typedef struct {
-    uint8_t selector[4];             /* 4-byte function selector        */
-    bool    has_selector;            /* false if calldata < 4 bytes     */
-    uint8_t param_count;             /* number of top-level params      */
-    uint8_t params[ABI_MAX_PARAMS];  /* indices into static node pool   */
+    uint8_t selector[ABI_SELECTOR_SIZE];             
+    bool    has_selector;           
+    uint8_t param_count;             
+    uint8_t params[ABI_MAX_PARAMS][ABI_SLOT_SIZE];
 } abi_calldata_t;
 
 /**
