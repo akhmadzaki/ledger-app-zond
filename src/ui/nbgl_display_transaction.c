@@ -37,7 +37,7 @@
 #include "types.h"
 #include "ui_utils.h"
 
-static char g_from_address[1 + ADDRESS_SIZE * 2 + 1];
+// static char g_from_address[1 + ADDRESS_SIZE * 2 + 1];
 static char g_amount[30];
 static char g_to_address[1 + ADDRESS_SIZE * 2 + 1];
 static char g_max_fees[30];
@@ -195,13 +195,13 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     }
 
 
-        PRINTF("DERIVE ADDRESS START\n");
+        // PRINTF("DERIVE ADDRESS START\n");
         cx_err_t error =
             address_from_bip32_path(G_context.bip32_path, G_context.bip32_path_len, G_context.address);
         if (error != CX_OK) {
             return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
         }
-        PRINTF("DERIVE ADDRESS END\n");
+        // PRINTF("DERIVE ADDRESS END\n");
 
     PRINTF("from Q");
     for (int i = 0; i < ADDRESS_SIZE; i++) {
@@ -222,10 +222,16 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     PRINTF("tx hash %s\n", g_tx_hash);
 
     // Format from address
-    memset(g_from_address, 0, sizeof(g_from_address));
-    if (!format_checksummed_address(G_context.address, g_from_address, sizeof(g_from_address))) {
+    memset(g_ui_buffer, 0, sizeof(g_ui_buffer));
+    if (!format_checksummed_address(G_context.address, g_ui_buffer, sizeof(g_ui_buffer))) {
         return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
     }
+
+    PRINTF("pk ");
+    for(int i = 0; i < 128; i++) {
+        PRINTF("%02x", N_storage.pk[i]);
+    }
+    PRINTF("...\n");
 
     // Format amount
     char amount[30] = {0};
@@ -258,7 +264,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     if(N_storage.display_nonce && N_storage.display_tx_hash) {
         if(G_context.tx_info.tx_data.data_len > 0) {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
 
             pairs[1].item = "To";
             pairs[1].value = g_to_address;
@@ -285,7 +291,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
             num_pairs = 5;
         } else {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
             pairs[1].item = "Amount";
             pairs[1].value = g_amount;
             pairs[2].item = "To";
@@ -305,7 +311,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     } else if(N_storage.display_nonce) {
         if(G_context.tx_info.tx_data.data_len > 0) {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
 
             pairs[1].item = "To";
             pairs[1].value = g_to_address;
@@ -324,7 +330,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
             num_pairs = 4;
         } else {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
             pairs[1].item = "Amount";
             pairs[1].value = g_amount;
             pairs[2].item = "To";
@@ -338,7 +344,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     } else if(N_storage.display_tx_hash) {
         if(G_context.tx_info.tx_data.data_len > 0) {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
 
             pairs[1].item = "To";
             pairs[1].value = g_to_address;
@@ -362,7 +368,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
             num_pairs = 4;
         } else {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
             pairs[1].item = "Amount";
             pairs[1].value = g_amount;
             pairs[2].item = "To";
@@ -382,7 +388,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     } else {
         if(G_context.tx_info.tx_data.data_len > 0) { 
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
             pairs[1].item = "To";
             pairs[1].value = g_to_address;
             if(G_context.tx_info.tx_data.to_len == 0) {
@@ -396,7 +402,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
             num_pairs = 3;
         } else {
             pairs[0].item = "From";
-            pairs[0].value = g_from_address;
+            pairs[0].value = g_ui_buffer;
             pairs[1].item = "Amount";
             pairs[1].value = g_amount;
             pairs[2].item = "To";

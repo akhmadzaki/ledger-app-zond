@@ -32,7 +32,7 @@ char g_titleMsg[TITLE_MSG_LEN];
 char g_finishMsg[FINISH_MSG_LEN];
 
 static char g_selector[9];
-static char g_parameter[140];
+// static char g_parameter[140];
 
 static void buildScreen(e_confirmation_type confirm_type);
 
@@ -85,21 +85,21 @@ static void buildScreen(e_confirmation_type confirm_type) {
     g_pairs[0].item = (confirm_type == PARAMETER_CONFIRMATION) ? "Parameter" : "Selector";
 
     if(confirm_type == PARAMETER_CONFIRMATION) {
-        memset(g_parameter, 0, sizeof(g_parameter));
+        memset(g_ui_buffer, 0, sizeof(g_ui_buffer));
         if(g_param_count > 0) {
             uint32_t offset = 0;
             uint32_t i;
             for (i = 0; i < 8; i++) {
-                offset += split_binary_parameter_part(g_parameter + offset,
-                                                        sizeof(g_parameter) - offset,
+                offset += split_binary_parameter_part(g_ui_buffer + offset,
+                                                        sizeof(g_ui_buffer) - offset,
                                                         G_context.tx_info.calldata.params[g_param_index] + 8*i);
                 if (i != 3) {
-                    g_parameter[offset++] = ':';
+                    g_ui_buffer[offset++] = ':';
                 }
             }
-            g_parameter[strlen(g_parameter) - 1] = '\0';
+            g_ui_buffer[strlen(g_ui_buffer) - 1] = '\0';
         }
-        g_pairs[0].value = g_parameter;
+        g_pairs[0].value = g_ui_buffer;
     } else {
         bytes_to_hex_string(G_context.tx_info.calldata.selector, 4, g_selector);
         for(unsigned int i = 0; i < strlen(g_selector); ++i) {

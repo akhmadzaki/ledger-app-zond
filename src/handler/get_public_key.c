@@ -39,6 +39,10 @@ int handler_get_public_key(buffer_t *cdata, bool display) {
     G_context.req_type = CONFIRM_ADDRESS;
     G_context.state = STATE_NONE;
 
+    uint8_t zero_buffer[MLDSA87_SIGBYTES] = {0};
+    nvm_write((void *)&N_storage.pk[0], zero_buffer, MLDSA87_PUBLICKEYBYTES);
+    nvm_write((void *)&N_storage.sig[0], zero_buffer, MLDSA87_SIGBYTES);
+
     if (!buffer_read_u8(cdata, &G_context.bip32_path_len) ||
         !buffer_read_bip32_path(cdata, G_context.bip32_path, (size_t) G_context.bip32_path_len)) {
         return io_send_sw(SW_WRONG_DATA_LENGTH);

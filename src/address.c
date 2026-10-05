@@ -50,34 +50,35 @@ bool is_valid_zond_bip32_path(const uint32_t bip32_path[], size_t bip32_path_len
 cx_err_t address_from_bip32_path(const uint32_t bip32_path[],
                                  size_t bip32_path_len,
                                  uint8_t address[ADDRESS_SIZE]) {
-    PRINTF("address start\n");
+    // PRINTF("address start\n");
     uint8_t raw_seed[64] = {0};
-    PRINTF("%d\n", bip32_path_len);
+    // PRINTF("%d\n", bip32_path_len);
     cx_err_t err =
         os_derive_bip32_no_throw(CX_CURVE_SECP256K1, bip32_path, bip32_path_len, raw_seed, NULL);
-    PRINTF("after derive\n");
+    // PRINTF("after derive\n");
     if (err != CX_OK) {
         PRINTF("0x%x\n", err);
         return err;
     }
-    PRINTF("after error\n");
+    // PRINTF("after error\n");
     uint8_t sk[MLDSA87_SECRETKEYBYTES] = {0};
     uint8_t pk[MLDSA87_PUBLICKEYBYTES] = {0};
-    PRINTF("keygen start\n");
+    // PRINTF("keygen start\n");
     err = MLDSA_internal_keygen(pk, sizeof(pk), sk, sizeof(sk), raw_seed, MLDSA_87);
     explicit_bzero(raw_seed, sizeof(raw_seed));
     explicit_bzero(sk, sizeof(sk));
-    PRINTF("keygen end\n");
+    // PRINTF("keygen end\n");
     if (err != CX_OK) {
         return -1;
     }
 
-    for (size_t i = 0; i < MLDSA87_PUBLICKEYBYTES; i++) {
-        uint8_t tmp = pk[i];
-        nvm_write((void *) &N_storage.pk[i], &tmp, sizeof(uint8_t));
-    }
+    // for (size_t i = 0; i < MLDSA87_PUBLICKEYBYTES; i++) {
+    //     uint8_t tmp = pk[i];
+    //     nvm_write((void *) &N_storage.pk[i], &tmp, sizeof(uint8_t));
+    // }
+    nvm_write((void *)&N_storage.pk[0], pk, MLDSA87_PUBLICKEYBYTES);
 
-    uint8_t desc[DESCRIPTOR_BYTES] = {1, 0, 0};  // ML-DSA-87 descriptor
+    const uint8_t desc[DESCRIPTOR_BYTES] = {1, 0, 0};  // ML-DSA-87 descriptor
 
     // address = SHAKE256_XOF(descriptor || pk, 64)
     // shake256_ctx ctx;
@@ -106,7 +107,7 @@ cx_err_t address_from_bip32_path(const uint32_t bip32_path[],
     if(err != CX_OK) {
         return -1;
     }
-    PRINTF("END\n");
+    // PRINTF("END\n");
 
     return 0;
 }

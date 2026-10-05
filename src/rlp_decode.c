@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "cx.h"
-#include "types.h"
+// #include "cx.h"
+// #include "types.h"
 
 static int parse_rlp_item(const uint8_t *input,
                           size_t input_len,
@@ -235,8 +235,8 @@ int decode_ledger_tx(const uint8_t *rlp, size_t rlp_len, zond_tx_t *tx) {
         PRINTF("Invalid data field\n");
         return -1;
     }
-    PRINTF("consumed %d\n", consumed);
-    PRINTF("val_len %d\n", val_len);
+    // PRINTF("consumed %d\n", consumed);
+    // PRINTF("val_len %d\n", val_len);
     memset(tx->data, 0, MAX_DATA_SIZE);
     if (val_len > 0) memcpy(tx->data, val_ptr, val_len);  // right-align
     tx->data_len = val_len;

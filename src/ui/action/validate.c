@@ -39,16 +39,16 @@ void validate_pubkey(bool choice) {
 }
 
 static int crypto_sign_message(void) {
-    uint8_t QRL_CTX[8] = {'Z', 'O', 'N', 'D', 0x01, 0x01, 0x00, 0x00};
+    const uint8_t QRL_CTX[8] = {'Z', 'O', 'N', 'D', 0x01, 0x01, 0x00, 0x00};
 
-    PRINTF("crypto sign start\n");
-    PRINTF("bip32_path_len %d\n", G_context.bip32_path_len);
-    PRINTF("raw_tx_len %d\n", G_context.tx_info.raw_tx_len);
+    // PRINTF("crypto sign start\n");
+    // PRINTF("bip32_path_len %d\n", G_context.bip32_path_len);
+    // PRINTF("raw_tx_len %d\n", G_context.tx_info.raw_tx_len);
     PRINTF("SIGNING START\n");
 
-    static uint8_t sk[MLDSA87_SECRETKEYBYTES];
+    uint8_t sk[MLDSA87_SECRETKEYBYTES];
     uint8_t sig[MLDSA87_SIGBYTES];
-    static uint8_t raw_seed[64] = {0};
+    uint8_t raw_seed[64] = {0};
     cx_err_t err =
         os_derive_bip32_no_throw(CX_CURVE_SECP256K1, G_context.bip32_path, G_context.bip32_path_len, raw_seed, NULL);
     if (err != CX_OK) {
@@ -62,17 +62,6 @@ static int crypto_sign_message(void) {
     }
 
     size_t actual_len = 0;
-    PRINTF("HASH: ");
-    for(int i = 0; i < 32; i++) {
-        PRINTF("%02x", G_context.tx_info.m_hash[i]);
-    }
-    PRINTF("\n");
-
-    PRINTF("CTX: ");
-    for(unsigned int i = 0; i < sizeof(QRL_CTX); i++) {
-        PRINTF("%02x", QRL_CTX[i]);
-    }
-    PRINTF("\n");
 
     err = MLDSA_sign(sig,
                     sizeof(sig),
@@ -85,21 +74,17 @@ static int crypto_sign_message(void) {
                     sizeof(sk),
                     MLDSA_87);
     explicit_bzero(sk, sizeof(sk));
-    PRINTF("bip32_path_len %d\n", G_context.bip32_path_len);
-    PRINTF("raw_tx_len %d\n", G_context.tx_info.raw_tx_len);
 
-    for (size_t i = 0; i < MLDSA87_SIGBYTES; i++) {
-        uint8_t tmp = sig[i];
-        nvm_write((void *) &N_storage.sig[i], &tmp, sizeof(uint8_t));
-    }
+    // for (size_t i = 0; i < MLDSA87_SIGBYTES; i++) {
+    //     uint8_t tmp = sig[i];
+    //     nvm_write((void *) &N_storage.sig[i], &tmp, sizeof(uint8_t));
+    // }
+    nvm_write((void *)&N_storage.sig[0], sig, MLDSA87_SIGBYTES);
     
     PRINTF("SIGNING END\n");
     if (err != CX_OK || actual_len != MLDSA87_SIGBYTES) {
         return -1;
     }
-
-    PRINTF("bip32_path_len %d\n", G_context.bip32_path_len);
-    PRINTF("raw_tx_len %d\n", G_context.tx_info.raw_tx_len);
 
     PRINTF("VERIFY START\n");
 

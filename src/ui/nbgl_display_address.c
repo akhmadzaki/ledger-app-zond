@@ -32,8 +32,9 @@
 #include "address.h"
 #include "validate.h"
 #include "menu.h"
+#include "ui_utils.h"
 
-static char g_address[1 + ADDRESS_SIZE * 2 + 1];
+// static char g_address[1 + ADDRESS_SIZE * 2 + 1];
 
 static void review_choice(bool confirm) {
     // Answer, display a status page and go back to main
@@ -51,12 +52,12 @@ int ui_display_address() {
         return io_send_sw(SW_BAD_STATE);
     }
 
-    memset(g_address, 0, sizeof(g_address));
-    if (!format_checksummed_address(G_context.address, g_address, sizeof(g_address))) {
+    memset(g_ui_buffer, 0, sizeof(g_ui_buffer));
+    if (!format_checksummed_address(G_context.address, g_ui_buffer, sizeof(g_ui_buffer))) {
         return io_send_sw(SW_DISPLAY_ADDRESS_FAIL);
     }
 
-    nbgl_useCaseAddressReview(g_address,
+    nbgl_useCaseAddressReview(g_ui_buffer,
                               NULL,
                               &ICON_APP_BOILERPLATE,
                               "Verify QRL v2.0 address",

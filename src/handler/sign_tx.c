@@ -20,16 +20,16 @@
 #include <stddef.h>   // size_t
 #include <string.h>   // memset, explicit_bzero
 
-#include "os.h"
+// #include "os.h"
 #include "cx.h"
-#include "buffer.h"
+// #include "buffer.h"
 
 #include "sign_tx.h"
 #include "address.h"
 #include "sw.h"
 #include "globals.h"
-#include "display.h"
-#include "validate.h"
+// #include "display.h"
+// #include "validate.h"
 #include "send_response.h"
 #include "rlp_decode.h"
 #include "common_ui.h"
@@ -73,6 +73,10 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         explicit_bzero(&G_context, sizeof(G_context));
         G_context.req_type = CONFIRM_TRANSACTION;
         G_context.state = STATE_NONE;
+
+        uint8_t zero_buffer[MLDSA87_SIGBYTES] = {0};
+        nvm_write((void *)&N_storage.pk[0], zero_buffer, MLDSA87_PUBLICKEYBYTES);
+        nvm_write((void *)&N_storage.sig[0], zero_buffer, MLDSA87_SIGBYTES);
 
         if (!buffer_read_u8(cdata, &G_context.bip32_path_len) ||
             !buffer_read_bip32_path(cdata,
@@ -150,31 +154,34 @@ int handler_sign_tx(buffer_t *cdata, uint8_t p1, uint8_t p2) {
         if(error != CX_OK) {
             return io_send_sw(SW_SIGNATURE_FAIL);
         }
-        PRINTF("MESSAGE HASH: ");
-        for (int i = 0; i < 32; i++) {
-            PRINTF("%02x", G_context.tx_info.m_hash[i]);
-        }
-        PRINTF("\n");
+        // PRINTF("MESSAGE HASH: ");
+        // for (int i = 0; i < 32; i++) {
+        //     PRINTF("%02x", G_context.tx_info.m_hash[i]);
+        // }
+        // PRINTF("\n");
 
-        if (G_context.req_type == CONFIRM_TRANSACTION) {
-            PRINTF("TRANSACTION\n");
-        }
+        // if (G_context.req_type == CONFIRM_TRANSACTION) {
+        //     PRINTF("TRANSACTION\n");
+        // }
 
-        PRINTF("%d\n", sizeof(G_context.tx_info.raw_tx));
-        PRINTF("%d\n", G_context.tx_info.raw_tx_len);
+        // PRINTF("%d\n", sizeof(G_context.tx_info.raw_tx));
+        // PRINTF("%d\n", G_context.tx_info.raw_tx_len);
         int err = decode_ledger_tx(G_context.tx_info.raw_tx, G_context.tx_info.raw_tx_len, &G_context.tx_info.tx_data);
 
-        PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
+        PRINTF("max data size outside %d\n", MAX_DATA_SIZE);
+        PRINTF("max transaction len outside %d\n", MAX_TRANSACTION_LEN);
+
+        // PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
 
         if (err != 0) {
             PRINTF("Failed to decode\n");
             return io_send_sw(SW_TX_PARSING_FAIL);
         }
 
-        PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
-        #ifdef TARGET_NANOX
-            PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
-        #endif
+        // PRINTF("%d\n", G_context.tx_info.tx_data.data_len);
+        // #ifdef TARGET_NANOX
+        //     PRINTF("NANO X %d\n", G_context.tx_info.tx_data.data_len);
+        // #endif
 
         if((G_context.tx_info.tx_data.data_len !=0) && !N_storage.enable_blind_signing) {
             ui_error_blind_signing();
