@@ -118,4 +118,6 @@ INCLUDES_PATH += $(BOLOS_SDK)/lib_cxng/src
 
 include $(BOLOS_SDK)/Makefile.standard_app
 
+DEFINES += COPYRIGHT_YEAR=\"$(shell git show -s --format=%cd --date=format:%Y HEAD)\"
+
 

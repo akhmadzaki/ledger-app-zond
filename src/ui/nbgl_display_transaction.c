@@ -38,9 +38,9 @@
 #include "ui_utils.h"
 
 // static char g_from_address[1 + ADDRESS_SIZE * 2 + 1];
-static char g_amount[30];
+static char g_amount[35];
 static char g_to_address[1 + ADDRESS_SIZE * 2 + 1];
-static char g_max_fees[30];
+static char g_max_fees[35];
 static char g_nonce[10];
 static char g_tx_hash[67];
 
@@ -239,7 +239,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     convert_amount_to_eth(G_context.tx_info.tx_data.value, G_context.tx_info.tx_data.value_len, amount, sizeof(amount));
     PRINTF("amount %s\n", amount);
     memset(g_amount, 0, sizeof(g_amount));
-    snprintf(g_amount, sizeof(g_amount), "QRL %.*s", sizeof(amount), amount);
+    snprintf(g_amount, sizeof(g_amount), "%.*s QRL", strlen(amount), amount);
 
     // Format to address
     memset(g_to_address, 0, sizeof(g_to_address));
@@ -256,7 +256,7 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
     convert_amount_to_eth(G_context.tx_info.tx_data.gas_fee_cap, G_context.tx_info.tx_data.gas_fee_cap_len, max_fees, sizeof(max_fees));
     PRINTF("max fees %s\n", max_fees);
     memset(g_max_fees, 0, sizeof(g_max_fees));
-    snprintf(g_max_fees, sizeof(g_max_fees), "QRL %.*s", sizeof(max_fees), max_fees);
+    snprintf(g_max_fees, sizeof(g_max_fees), "%.*s QRL", strlen(max_fees), max_fees);
 
     uint8_t num_pairs = 0;
 
@@ -327,7 +327,14 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
             pairs[3].item = "Max fees";
             pairs[3].value = g_max_fees;
 
-            num_pairs = 4;
+            #ifdef SCREEN_SIZE_WALLET
+            pairs[4].item = "Transaction hash";
+    #else
+            pairs[4].item = "Tx hash";
+    #endif
+            pairs[4].value = g_tx_hash;
+
+            num_pairs = 5;
         } else {
             pairs[0].item = "From";
             pairs[0].value = g_ui_buffer;
@@ -399,7 +406,15 @@ int ui_display_transaction_bs_choice(bool is_blind_signed) {
             } 
             pairs[2].item = "Max fees";
             pairs[2].value = g_max_fees;
-            num_pairs = 3;
+
+            #ifdef SCREEN_SIZE_WALLET
+            pairs[3].item = "Transaction hash";
+    #else
+            pairs[3].item = "Tx hash";
+    #endif
+            pairs[3].value = g_tx_hash;
+
+            num_pairs = 4;
         } else {
             pairs[0].item = "From";
             pairs[0].value = g_ui_buffer;

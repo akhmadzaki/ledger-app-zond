@@ -69,14 +69,14 @@ static void reviewChoice(bool confirm) {
         if(g_param_count > 0) {
             buildScreen(PARAMETER_CONFIRMATION);
         } else {
-            ui_display_transaction();
+            ui_display_blind_signed_transaction();
         }
     } else {
         g_param_index++;
         if(g_param_index < g_param_count) {
             buildScreen(PARAMETER_CONFIRMATION);
         } else {
-            ui_display_transaction();
+            ui_display_blind_signed_transaction();
         }
     }
 }

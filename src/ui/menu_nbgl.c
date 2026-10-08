@@ -36,9 +36,9 @@ void app_quit(void) {
 //  -----------------------------------------------------------
 //  --------------------- SETTINGS MENU -----------------------
 //  -----------------------------------------------------------
-#define SETTING_INFO_NB 2
-static const char *const INFO_TYPES[SETTING_INFO_NB] = {"Version", "Developer"};
-static const char *const INFO_CONTENTS[SETTING_INFO_NB] = {APPVERSION, "Ledger"};
+#define SETTING_INFO_NB 3
+static const char *const INFO_TYPES[SETTING_INFO_NB] = {"Version", "Developer", "Copyright"};
+static const char *const INFO_CONTENTS[SETTING_INFO_NB] = {APPVERSION, "Ledger", ("Ledger (c) " COPYRIGHT_YEAR)};
 
 // settings switches definitions
 enum { BLIND_SIGNING_SWITCH_TOKEN = FIRST_USER_TOKEN, NONCE_SWITCH_TOKEN, TX_HASH_SWITCH_TOKEN, DEBUG_SMART_CONTRACT_SWITCH_TOKEN };
